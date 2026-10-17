@@ -1,36 +1,37 @@
-# Handoff Project Snapshot: Release Key & ProGuard / R8 Optimization
+# Handoff Project Snapshot: Aggiornamento Toolchain e Dipendenze
 
 ## Stato Corrente
-- **Chiave di Release Creata e Configurata**:
-  - Keystore PKCS12 generato in `keystore/release.jks` (RSA 2048-bit, validità 10.000 giorni, alias `homearcade`, DN `CN=Home Arcade TV, OU=HomeArcade, O=HomeArcade, L=Rome, ST=RM, C=IT`).
-  - File di credenziali `keystore.properties` (locale e protetto in `.gitignore`) e template versionato `keystore.properties.example`.
-  - `app/build.gradle.kts` configurato con `signingConfigs.release` (lettura dinamica da file o variabili d'ambiente CI/CD, fallback sicuro su debug se non presente).
-- **ProGuard / R8 al Massimo Livello**:
-  - Abilitato `android.enableR8.fullMode=true` in `gradle.properties`.
-  - `app/proguard-rules.pro` riscritto con ottimizzazioni aggressive (`-allowaccessmodification`, `-repackageclasses ''`, rimozione selettiva di `android.util.Log` v/d/i in release).
-  - Regole specifiche e mirate per lo stack: Jetpack Compose TV, Kotlinx Serialization DTOs, Ktor Client OkHttp, OkHttp3, Coil 2, Coroutines, ViewModel.
-- **Verifica Empirica & DoD**:
-  - Test unitari eseguiti e superati: `./gradlew test` (49 task eseguiti, 100% passati).
-  - Build release completata con successo: `./gradlew assembleRelease` (APK generato in `app/build/outputs/apk/release/app-release.apk`, dimensione ottimizzata a 2.5 MB).
-  - Firma validata con `apksigner verify --verbose --print-certs` (v2 scheme verificato con successo).
+- **Toolchain Modernizzato**: Gradle Wrapper aggiornato a 9.7.1 e Android Gradle Plugin (AGP) a 9.4.1 con supporto built-in nativo a Kotlin (rimosso plugin legacy `kotlin-android` e configurato `compilerOptions.jvmTarget = JVM_17`).
+- **Target SDK & Compatibilità**: `compileSdk` elevato a 37 per soddisfare i requisiti delle ultime release AndroidX, mantenendo `minSdk = 26` e `targetSdk = 35`.
+- **Librerie Allineate alle Ultime Versioni Stabili**:
+  - Kotlin 2.4.21, Compose BOM 2026.09.00, Activity Compose 1.13.0, Navigation Compose 2.10.2, DataStore 1.2.1, Lifecycle 2.11.0, Core KTX 1.19.1.
+  - Ktor Client 3.6.0, OkHttp 5.5.0, Kotlinx Serialization 1.11.0, Kotlinx Coroutines 1.11.0.
+- **Migrazione Coil 3 Completata**: Passaggio da Coil 2.7.0 a Coil 3.6.3 (`io.coil-kt.coil3`), integrazione modularizzata `coil-network-okhttp`, migrazione `SingletonImageLoader.Factory` in `HomeArcadeTvApp.kt` e aggiornamento import `AsyncImage` e regole R8 ProGuard.
+- **Verifica Empirica**:
+  - `./gradlew test`: superato al 100% (26 task eseguiti).
+  - `./gradlew assembleDebug`: build APK completata con successo (38 task).
+  - `./gradlew assembleRelease`: build con R8 e shrinking completata con successo (52 task).
 
 ## File Rilevanti
-- `.gitignore`: Aggiunte esclusioni per `*.jks`, `*.keystore`, `keystore.properties` e `.kotlin/`.
-- `keystore/release.jks`: Keystore di release protetto localmente.
-- `keystore.properties`: Configurazione credenziali locale (gitignored).
-- `keystore.properties.example`: Template documentato per CI/CD o nuovi ambienti.
-- `app/build.gradle.kts`: Configurazione `signingConfigs.release` e associazione al buildType `release`.
-- `app/proguard-rules.pro`: Regole di ottimizzazione, obfuscation, shrinking e keep R8.
-- `gradle.properties`: Abilitazione R8 full mode.
-- `docs/plans/2026-10-17_release_key_and_proguard_optimization.md`: Piano di lavoro strutturato con checklist completata.
+- `gradle/wrapper/gradle-wrapper.properties`: Upgrade a Gradle 9.7.1.
+- `gradle/libs.versions.toml`: Catalogo aggiornato con le ultime release stabili e coordinate Coil 3.
+- `build.gradle.kts`: Rimozione plugin `kotlin-android` (gestito nativamente da AGP 9).
+- `app/build.gradle.kts`: `compileSdk = 37`, blocco top-level `kotlin.compilerOptions`, dipendenza `libs.coil.network.okhttp`.
+- `app/proguard-rules.pro`: Regole keep e dontwarn per `coil3.**`.
+- `app/src/main/java/com/homearcade/tv/HomeArcadeTvApp.kt`: Migrazione singleton Coil 3 (`SingletonImageLoader.Factory`, `OkHttpNetworkFetcherFactory`, Okio Path).
+- `app/src/main/java/com/homearcade/tv/ui/components/HeroBillboard.kt`: Import `coil3.compose.AsyncImage`.
+- `app/src/main/java/com/homearcade/tv/ui/components/TvGameCard.kt`: Import `coil3.compose.AsyncImage`.
+- `app/src/main/java/com/homearcade/tv/ui/details/DetailsScreen.kt`: Import `coil3.compose.AsyncImage`.
+- `.gitignore`: Esclusione cache interna compiler `.kotlin/`.
+- `docs/plans/2026-10-17_upgrade_dependencies.md`: Piano di lavoro dettagliato con checklist completata.
 
 ## Prossimi Passi (Next Steps)
-1. Eseguire commit atomico dei file modificati (`feat: setup release signing config and optimize R8 proguard rules`).
-2. Eventuale configurazione delle GitHub Actions (`.github/workflows/ci.yml`) con i secret `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` per la firma automatica in CI.
-3. Test di installazione e avvio dell'APK release su dispositivo reale o emulatore Android TV (`adb install -r app/build/outputs/apk/release/app-release.apk`).
+1. Eseguire commit atomico (`chore: upgrade dependencies to latest stable versions, AGP 9.4 and Coil 3`).
+2. Test applicativo e verifica rendering immagini su emulatore Android TV o dispositivo fisico.
+3. Configurazione credenziali di signing release in `keystore.properties` (opzionale per build firmata).
 
 ## Comandi Utili
-- **Generazione APK Release Firmato**: `./gradlew assembleRelease`
-- **Verifica Firma APK con apksigner**: `$ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk`
+- **Compilazione Debug**: `./gradlew assembleDebug`
+- **Compilazione Release (R8)**: `./gradlew assembleRelease`
 - **Esecuzione Test Unitari**: `./gradlew test`
-- **Installazione su Android TV**: `adb install -r app/build/outputs/apk/release/app-release.apk`
+- **Pulizia Build Cache**: `./gradlew clean`

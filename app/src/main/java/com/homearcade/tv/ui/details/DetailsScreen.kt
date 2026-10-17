@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.homearcade.tv.ui.components.TvButton
 import com.homearcade.tv.ui.components.TvLoadingSpinner
 import com.homearcade.tv.ui.components.tvFocusable

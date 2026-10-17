@@ -1,8 +1,8 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -16,7 +16,7 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.homearcade.tv"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.homearcade.tv"
@@ -80,10 +80,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     packaging {
         resources {
             excludes += setOf(
@@ -92,6 +88,12 @@ android {
                 "/META-INF/io.netty.versions.properties"
             )
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -118,6 +120,7 @@ dependencies {
 
     // Image Loading (Coil)
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // Ktor Client Network Stack & Kotlinx Serialization
     implementation(libs.ktor.client.core)

@@ -1,19 +1,22 @@
 package com.homearcade.tv
 
 import android.app.Application
-import coil.Coil
-import coil.ImageLoader
-import coil.ImageLoaderFactory
-import coil.disk.DiskCache
-import coil.memory.MemoryCache
-import coil.util.DebugLogger
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
+import coil3.util.DebugLogger
 import com.homearcade.tv.data.local.AppPreferences
 import com.homearcade.tv.data.repository.ProfileRepository
 import com.homearcade.tv.data.repository.RomRepository
 import okhttp3.OkHttpClient
+import okio.Path.Companion.toOkioPath
 import java.util.concurrent.TimeUnit
 
-class HomeArcadeTvApp : Application(), ImageLoaderFactory {
+class HomeArcadeTvApp : Application(), SingletonImageLoader.Factory {
 
     lateinit var preferences: AppPreferences
         private set
@@ -47,20 +50,26 @@ class HomeArcadeTvApp : Application(), ImageLoaderFactory {
         profileRepository = ProfileRepository(preferences)
 
         // Initialize Coil singleton explicitly
-        Coil.setImageLoader(this)
+        SingletonImageLoader.setSafe(this)
     }
 
-    override fun newImageLoader(): ImageLoader {
-        return ImageLoader.Builder(this)
-            .okHttpClient(coilOkHttpClient)
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        return ImageLoader.Builder(context)
+            .components {
+                add(
+                    OkHttpNetworkFetcherFactory(
+                        callFactory = { coilOkHttpClient }
+                    )
+                )
+            }
             .memoryCache {
-                MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)
+                MemoryCache.Builder()
+                    .maxSizePercent(context, 0.25)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
-                    .directory(cacheDir.resolve("rom_art_cache"))
+                    .directory(cacheDir.resolve("rom_art_cache").toOkioPath())
                     .maxSizeBytes(150L * 1024 * 1024) // 150MB disk cache for box art
                     .build()
             }
