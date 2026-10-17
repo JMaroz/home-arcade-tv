@@ -37,7 +37,8 @@ class ServerDiscoveryManager {
                 val api = ApiClient.create(baseUrl)
                 api.getSetupStatus()
                 Result.success(HealthStatusDto("ok"))
-            } catch (_: Exception) {
+            } catch (fallbackEx: Exception) {
+                android.util.Log.w("ServerDiscovery", "Connection test failed for $baseUrl: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -58,10 +59,12 @@ class ServerDiscoveryManager {
 
         for (candidate in priorityCandidates) {
             emit(DiscoveryState.Searching(candidate, 0, priorityCandidates.size))
-            val testResult = testConnection(candidate)
-            if (testResult.isSuccess) {
-                emit(DiscoveryState.Found(candidate, testResult.getOrThrow()))
-                return@flow
+            if (probeUrl(candidate)) {
+                val testResult = testConnection(candidate)
+                if (testResult.isSuccess) {
+                    emit(DiscoveryState.Found(candidate, testResult.getOrThrow()))
+                    return@flow
+                }
             }
         }
 
@@ -88,18 +91,22 @@ class ServerDiscoveryManager {
                     }
                 }
                 val results = deferredList.awaitAll()
-                results.firstOrNull { it != null }
+                val aliveUrls = results.filterNotNull()
+                for (url in aliveUrls) {
+                    val fullTest = testConnection(url)
+                    if (fullTest.isSuccess) {
+                        return@withContext Pair(url, fullTest.getOrThrow())
+                    }
+                }
+                null
             }
 
             scannedCount += batch.size * 2
             emit(DiscoveryState.Searching("Scansione IP locali (${scannedCount}/$total)...", scannedCount, total))
 
             if (foundMatch != null) {
-                val fullTest = testConnection(foundMatch)
-                if (fullTest.isSuccess) {
-                    emit(DiscoveryState.Found(foundMatch, fullTest.getOrThrow()))
-                    return@flow
-                }
+                emit(DiscoveryState.Found(foundMatch.first, foundMatch.second))
+                return@flow
             }
         }
 
@@ -108,7 +115,7 @@ class ServerDiscoveryManager {
 
     private suspend fun probeUrl(url: String): Boolean {
         return try {
-            val response = ApiClient.httpClient.get("$url/api/health")
+            val response = ApiClient.probeHttpClient.get("$url/api/health")
             response.status == HttpStatusCode.OK
         } catch (_: Exception) {
             false
@@ -127,9 +134,12 @@ class ServerDiscoveryManager {
                         val parts = hostAddress.split(".")
                         if (parts.size == 4) {
                             val prefix = "${parts[0]}.${parts[1]}.${parts[2]}"
-                            val commonHosts = listOf(1, 2, 3, 4, 5, 10, 20, 50, 100, 101, 150, 200)
+                            val commonHosts = listOf(1, 67, 50, 2, 3, 4, 5, 10, 20, 100, 101, 150, 200)
                             for (host in commonHosts) {
-                                candidates.add("$prefix.$host")
+                                val ip = "$prefix.$host"
+                                if (!candidates.contains(ip)) {
+                                    candidates.add(ip)
+                                }
                             }
                             for (host in 1..254) {
                                 val ip = "$prefix.$host"

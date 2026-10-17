@@ -40,7 +40,6 @@ object ApiClient {
                 socketTimeoutMillis = 20_000
             }
 
-            // Minimal logging on Android TV to avoid main thread latency
             install(Logging) {
                 logger = object : Logger {
                     override fun log(message: String) {
@@ -48,6 +47,24 @@ object ApiClient {
                     }
                 }
                 level = LogLevel.NONE
+            }
+        }
+    }
+
+    val probeHttpClient: HttpClient by lazy {
+        HttpClient(OkHttp) {
+            engine {
+                preconfigured = OkHttpClient.Builder()
+                    .connectTimeout(1200, TimeUnit.MILLISECONDS)
+                    .readTimeout(1500, TimeUnit.MILLISECONDS)
+                    .writeTimeout(1500, TimeUnit.MILLISECONDS)
+                    .retryOnConnectionFailure(false)
+                    .build()
+            }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 1500
+                connectTimeoutMillis = 1200
+                socketTimeoutMillis = 1500
             }
         }
     }

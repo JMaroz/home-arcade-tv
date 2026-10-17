@@ -19,7 +19,7 @@ class SetupViewModel(
     private val _discoveryState = MutableStateFlow<DiscoveryState>(DiscoveryState.Idle)
     val discoveryState: StateFlow<DiscoveryState> = _discoveryState.asStateFlow()
 
-    private val _manualUrl = MutableStateFlow("http://192.168.1.100:9876")
+    private val _manualUrl = MutableStateFlow("http://192.168.1.67:5000")
     val manualUrl: StateFlow<String> = _manualUrl.asStateFlow()
 
     private val _isManualTesting = MutableStateFlow(false)
