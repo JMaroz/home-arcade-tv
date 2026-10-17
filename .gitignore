@@ -12,3 +12,11 @@ local.properties
 *.aab
 app/build/
 app/release/
+
+# Signing & Keystores
+*.jks
+*.keystore
+keystore.properties
+
+# Kotlin compiler cache
+.kotlin/
