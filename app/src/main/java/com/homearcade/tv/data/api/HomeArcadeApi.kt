@@ -5,11 +5,13 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
+import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import com.homearcade.tv.data.model.FavoriteToggleRequestDto
 import com.homearcade.tv.data.model.HealthStatusDto
+import com.homearcade.tv.data.model.HltbResponseDto
 import com.homearcade.tv.data.model.ProfileDto
 import com.homearcade.tv.data.model.RomDto
 import com.homearcade.tv.data.model.RomsResponseDto
@@ -48,6 +50,14 @@ class HomeArcadeApi(
 
     suspend fun getSaveStates(id: Int): List<SaveStateDto> {
         return client.get("$baseUrl/api/roms/$id/save-states").body()
+    }
+
+    suspend fun getHltb(id: Int): HltbResponseDto {
+        return client.get("$baseUrl/api/roms/$id/hltb").body()
+    }
+
+    suspend fun scrapeMeta(id: Int) {
+        client.post("$baseUrl/api/roms/$id/scrape-meta")
     }
 
     suspend fun toggleFavorite(id: Int, isFavorite: Boolean): RomDto {

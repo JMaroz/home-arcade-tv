@@ -32,9 +32,9 @@ class RomRepository(private val preferences: AppPreferences) {
         }
     }
 
-    suspend fun getRomDetails(id: Int): Result<RomDto> {
+    suspend fun getRomDetails(id: Int, forceRefresh: Boolean = false): Result<RomDto> {
         val cached = _romsCache.value.find { it.id == id }
-        if (cached != null && !cached.description.isNullOrEmpty()) {
+        if (!forceRefresh && cached != null && !cached.description.isNullOrEmpty()) {
             return Result.success(cached)
         }
 
@@ -48,7 +48,36 @@ class RomRepository(private val preferences: AppPreferences) {
             _romsCache.value = _romsCache.value.map { if (it.id == id) rom else it }
             Result.success(rom)
         } catch (e: Exception) {
+            android.util.Log.e("RomRepository", "Failed to fetch ROM details for id $id: ${e.message}", e)
             if (cached != null) Result.success(cached) else Result.failure(e)
+        }
+    }
+
+    suspend fun getHltb(id: Int): Result<com.homearcade.tv.data.model.HltbResponseDto> {
+        val baseUrl = preferences.serverUrl.firstOrNull()
+            ?: return Result.failure(IllegalStateException("Server URL non configurato."))
+
+        return try {
+            val api = ApiClient.create(baseUrl)
+            val hltb = api.getHltb(id)
+            Result.success(hltb)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun scrapeMeta(id: Int): Result<RomDto> {
+        val baseUrl = preferences.serverUrl.firstOrNull()
+            ?: return Result.failure(IllegalStateException("Server URL non configurato."))
+
+        return try {
+            val api = ApiClient.create(baseUrl)
+            try { api.scrapeMeta(id) } catch (_: Exception) {}
+            val updated = api.getRomDetails(id)
+            _romsCache.value = _romsCache.value.map { if (it.id == id) updated else it }
+            Result.success(updated)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

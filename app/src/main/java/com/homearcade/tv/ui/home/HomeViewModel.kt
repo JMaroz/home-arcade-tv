@@ -18,6 +18,13 @@ enum class HomeSection(val id: String, val title: String) {
     SYSTEMS("systems", "Per Console")
 }
 
+data class PlatformShelf(
+    val systemId: String,
+    val displayName: String,
+    val games: List<RomDto>,
+    val totalCount: Int
+)
+
 data class HomeUiState(
     val isLoading: Boolean = true,
     val serverUrl: String? = null,
@@ -27,6 +34,7 @@ data class HomeUiState(
     val recentlyPlayed: List<RomDto> = emptyList(),
     val favorites: List<RomDto> = emptyList(),
     val latestAdded: List<RomDto> = emptyList(),
+    val platformShelves: List<PlatformShelf> = emptyList(),
     val systemShelves: Map<String, List<RomDto>> = emptyMap(),
     val allSystems: List<String> = emptyList(),
     val selectedSystemFilter: String? = null,
@@ -63,6 +71,20 @@ class HomeViewModel(
 
                     val systemsList = systemsMap.keys.sorted()
 
+                    // Platform shelves sorted by latest additions (createdAt desc, id desc)
+                    val platformShelves = systemsMap.map { (systemId, systemRoms) ->
+                        val sortedByLatest = systemRoms.sortedWith(
+                            compareByDescending<RomDto> { it.createdAt }
+                                .thenByDescending { it.id }
+                        )
+                        PlatformShelf(
+                            systemId = systemId,
+                            displayName = com.homearcade.tv.ui.theme.getSystemDisplayName(systemId),
+                            games = sortedByLatest,
+                            totalCount = systemRoms.size
+                        )
+                    }.sortedBy { it.displayName }
+
                     // Pick hero rom: first favorite or recent or first available rom
                     val initialHero = favs.firstOrNull() ?: recent.firstOrNull() ?: roms.firstOrNull()
 
@@ -74,6 +96,7 @@ class HomeViewModel(
                         recentlyPlayed = recent,
                         favorites = favs,
                         latestAdded = latest,
+                        platformShelves = platformShelves,
                         systemShelves = systemsMap,
                         allSystems = systemsList,
                         errorMessage = null

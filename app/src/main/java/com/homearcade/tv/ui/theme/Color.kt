@@ -60,3 +60,60 @@ fun getSystemColor(system: String): Color {
         else -> ArcadePink
     }
 }
+
+/**
+ * Human-friendly display name for gaming consoles and systems.
+ */
+fun getSystemDisplayName(system: String): String {
+    return when (system.lowercase().trim()) {
+        "ps1", "psx" -> "PlayStation"
+        "ps2" -> "PlayStation 2"
+        "psp" -> "PlayStation Portable"
+        "snes" -> "Super Nintendo"
+        "nes" -> "Nintendo NES"
+        "n64" -> "Nintendo 64"
+        "gba" -> "Game Boy Advance"
+        "gbc" -> "Game Boy Color"
+        "gb" -> "Game Boy"
+        "nds" -> "Nintendo DS"
+        "genesis", "megadrive", "md" -> "Sega Mega Drive"
+        "dreamcast", "dc" -> "Sega Dreamcast"
+        "mastersystem", "ms" -> "Sega Master System"
+        "gamegear", "gg" -> "Sega Game Gear"
+        "saturn" -> "Sega Saturn"
+        "arcade", "mame", "fbneo" -> "Arcade Classics"
+        "neogeo" -> "Neo Geo"
+        "atari2600" -> "Atari 2600"
+        "atari7800" -> "Atari 7800"
+        "wii" -> "Nintendo Wii"
+        "gamecube", "gc" -> "Nintendo GameCube"
+        else -> system.uppercase()
+    }
+}
+
+/**
+ * Recommended Libretro core description for 10-foot UI display.
+ */
+fun getRecommendedCore(system: String): String {
+    return when (system.lowercase().trim()) {
+        "ps1", "psx" -> "PCSX ReARMed / DuckStation"
+        "ps2" -> "Play! / PCSX2"
+        "psp" -> "PPSSPP"
+        "snes" -> "Snes9x"
+        "nes" -> "FCEUmm / Mesen"
+        "n64" -> "Mupen64Plus-Next"
+        "gba" -> "mGBA"
+        "gbc", "gb" -> "Gambatte"
+        "nds" -> "DeSmuME / melonDS"
+        "genesis", "megadrive", "md" -> "Genesis Plus GX"
+        "dreamcast", "dc" -> "Flycast"
+        "mastersystem", "ms" -> "Genesis Plus GX"
+        "gamegear", "gg" -> "Genesis Plus GX"
+        "saturn" -> "Beetle Saturn / YabaSanshiro"
+        "arcade", "mame", "fbneo" -> "FinalBurn Neo / MAME"
+        "neogeo" -> "FBNeo"
+        "atari2600" -> "Stella"
+        "atari7800" -> "ProSystem"
+        else -> "Libretro Native Core"
+    }
+}

@@ -2,10 +2,11 @@ package com.homearcade.tv.ui.details
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,13 +22,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DiscFull
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,8 +41,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
@@ -46,22 +53,31 @@ import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.homearcade.tv.ui.components.TvButton
 import com.homearcade.tv.ui.components.TvLoadingSpinner
+import com.homearcade.tv.ui.components.TvShelfRow
 import com.homearcade.tv.ui.components.tvFocusable
+import com.homearcade.tv.ui.theme.AccentCyan
 import com.homearcade.tv.ui.theme.AccentGold
 import com.homearcade.tv.ui.theme.ArcadePink
 import com.homearcade.tv.ui.theme.BgCard
 import com.homearcade.tv.ui.theme.BgPrimary
+import com.homearcade.tv.ui.theme.BorderColor
 import com.homearcade.tv.ui.theme.TextDim
 import com.homearcade.tv.ui.theme.TextMain
 import com.homearcade.tv.ui.theme.TextMuted
+import com.homearcade.tv.ui.theme.getRecommendedCore
 import com.homearcade.tv.ui.theme.getSystemColor
+import com.homearcade.tv.ui.theme.getSystemDisplayName
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun DetailsScreen(
     viewModel: DetailsViewModel,
     onBackClick: () -> Unit,
-    onLaunchGame: (romId: Int, engine: String) -> Unit
+    onLaunchGame: (romId: Int, engine: String) -> Unit,
+    onNavigateToRom: (romId: Int) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val rom = uiState.rom
@@ -159,7 +175,7 @@ fun DetailsScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = rom.system.uppercase(),
+                            text = "${rom.system.uppercase()} • ${getSystemDisplayName(rom.system)}",
                             color = Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold,
@@ -167,6 +183,18 @@ fun DetailsScreen(
                                 .background(sysColor, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         )
+
+                        rom.getFileExtension()?.let { ext ->
+                            Text(
+                                text = ext,
+                                color = TextMain,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .background(Color(0x26FFFFFF), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                            )
+                        }
 
                         if (rom.releaseYear != null && rom.releaseYear > 0) {
                             Text(
@@ -221,7 +249,7 @@ fun DetailsScreen(
                         fontSize = 34.sp,
                         fontWeight = FontWeight.ExtraBold,
                         lineHeight = 40.sp,
-                        modifier = Modifier.width(700.dp)
+                        modifier = Modifier.width(760.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -236,7 +264,7 @@ fun DetailsScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
                 }
 
                 // Action Buttons
@@ -267,6 +295,78 @@ fun DetailsScreen(
                             icon = Icons.Default.Memory,
                             onClick = { viewModel.toggleEngine() }
                         )
+
+                        TvButton(
+                            text = if (uiState.isScraping) "Ricerca Info..." else "Cerca Info Online",
+                            icon = Icons.Default.CloudDownload,
+                            onClick = { viewModel.scrapeMetadata() }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
+
+                // Detailed Informational Cards (Game stats, File specs, HowLongToBeat)
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 48.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Card 1: Statistiche di Gioco
+                        InfoCard(
+                            title = "STATISTICHE DI GIOCO",
+                            icon = Icons.Default.Timer,
+                            iconTint = ArcadePink,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            val playTimeStr = if (rom.minutesPlayed > 0) {
+                                val h = rom.minutesPlayed / 60
+                                val m = rom.minutesPlayed % 60
+                                if (h > 0) "${h}h ${m}m" else "${m}m"
+                            } else {
+                                "0m"
+                            }
+                            InfoRow(label = "Tempo Giocato", value = playTimeStr)
+                            InfoRow(label = "Sessioni", value = "${rom.playCount} partite")
+                            InfoRow(label = "Ultimo Avvio", value = formatTimestamp(rom.lastPlayed))
+                        }
+
+                        // Card 2: Scheda Tecnica File
+                        InfoCard(
+                            title = "SCHEDA TECNICA & FILE",
+                            icon = Icons.Default.Storage,
+                            iconTint = AccentCyan,
+                            modifier = Modifier.weight(1.3f)
+                        ) {
+                            val fileNameDisplay = rom.fileName ?: rom.originalName ?: "Standard ROM"
+                            InfoRow(label = "File", value = fileNameDisplay)
+                            InfoRow(label = "Dimensione", value = rom.getFormattedSize() ?: "N/D")
+                            InfoRow(label = "Core", value = getRecommendedCore(rom.system))
+                        }
+
+                        // Card 3: HowLongToBeat
+                        InfoCard(
+                            title = "HOWLONGTOBEAT",
+                            icon = Icons.Default.HourglassTop,
+                            iconTint = AccentGold,
+                            modifier = Modifier.weight(1.1f)
+                        ) {
+                            val hltb = uiState.hltb
+                            if (hltb != null && hltb.found) {
+                                InfoRow(label = "Storia Principale", value = hltb.formatStory() ?: "N/D")
+                                InfoRow(label = "Storia + Extra", value = hltb.formatExtra() ?: "N/D")
+                                InfoRow(label = "Completista", value = hltb.formatCompletionist() ?: "N/D")
+                            } else {
+                                Text(
+                                    text = "Nessun dato HLTB disponibile",
+                                    color = TextDim,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -331,11 +431,15 @@ fun DetailsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = rom.description ?: "Nessuna sinossi disponibile per questo gioco.",
+                        text = if (!rom.description.isNullOrEmpty()) {
+                            rom.description
+                        } else {
+                            "Nessuna sinossi disponibile per questo gioco. Premi 'Cerca Info Online' in alto per scaricare automaticamente trame, generi e metadati."
+                        },
                         color = TextDim,
                         fontSize = 14.sp,
                         lineHeight = 22.sp,
-                        modifier = Modifier.width(720.dp)
+                        modifier = Modifier.width(760.dp)
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -379,10 +483,98 @@ fun DetailsScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
+                }
+
+                // Related Games Shelf for this Platform
+                if (uiState.relatedGames.isNotEmpty()) {
+                    item {
+                        TvShelfRow(
+                            title = "Altri titoli per ${getSystemDisplayName(rom.system)}",
+                            items = uiState.relatedGames,
+                            serverUrl = uiState.serverUrl,
+                            countSubtitle = "${uiState.relatedGames.size} titoli disponibili",
+                            onItemClick = { onNavigateToRom(it.id) }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(48.dp))
                 }
             }
         }
     }
+}
+
+@Composable
+private fun InfoCard(
+    title: String,
+    icon: ImageVector,
+    iconTint: Color,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(BgCard)
+            .border(1.dp, BorderColor, RoundedCornerShape(12.dp))
+            .padding(14.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = title,
+                color = TextMuted,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        content()
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            color = TextDim,
+            fontSize = 12.sp
+        )
+        Text(
+            text = value,
+            color = TextMain,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+    }
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    if (timestamp <= 0) return "Mai avviato"
+    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    return sdf.format(Date(timestamp))
 }

@@ -47,6 +47,13 @@ import com.homearcade.tv.ui.components.TvButton
 import com.homearcade.tv.ui.components.TvLoadingSpinner
 import com.homearcade.tv.ui.theme.ArcadePink
 import com.homearcade.tv.ui.theme.BgCard
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import com.homearcade.tv.ui.theme.TextDim
 import com.homearcade.tv.ui.theme.TextMain
 import com.homearcade.tv.ui.theme.TextMuted
@@ -60,11 +67,30 @@ fun PlayerScreen(
     val uiState by viewModel.uiState.collectAsState()
     var isPageLoading by remember { mutableStateOf(true) }
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
+    val isConfirmingExitState = rememberUpdatedState(uiState.isConfirmingExit)
+    val exitButtonFocusRequester = remember { FocusRequester() }
 
     HideSystemUI()
 
+    LaunchedEffect(uiState.isConfirmingExit) {
+        if (uiState.isConfirmingExit) {
+            webViewRef?.isFocusable = false
+            webViewRef?.isFocusableInTouchMode = false
+            webViewRef?.clearFocus()
+            exitButtonFocusRequester.requestFocus()
+        } else {
+            webViewRef?.isFocusable = true
+            webViewRef?.isFocusableInTouchMode = true
+            webViewRef?.requestFocus()
+        }
+    }
+
     BackHandler {
-        viewModel.showExitDialog()
+        if (uiState.isConfirmingExit) {
+            viewModel.dismissExitDialog()
+        } else {
+            viewModel.showExitDialog()
+        }
     }
 
     Box(
@@ -111,6 +137,9 @@ fun PlayerScreen(
                         }
 
                         setOnKeyListener { _, keyCode, event ->
+                            if (isConfirmingExitState.value) {
+                                return@setOnKeyListener false
+                            }
                             if (event.action == KeyEvent.ACTION_DOWN) {
                                 when (keyCode) {
                                     KeyEvent.KEYCODE_DPAD_UP -> {
@@ -144,6 +173,14 @@ fun PlayerScreen(
                 },
                 update = { wv ->
                     webViewRef = wv
+                    if (uiState.isConfirmingExit) {
+                        wv.isFocusable = false
+                        wv.isFocusableInTouchMode = false
+                        wv.clearFocus()
+                    } else {
+                        wv.isFocusable = true
+                        wv.isFocusableInTouchMode = true
+                    }
                 },
                 modifier = Modifier.fillMaxSize()
             )
@@ -190,6 +227,17 @@ fun PlayerScreen(
                         .width(480.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(BgCard)
+                        .onKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown &&
+                                (event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BACK ||
+                                 event.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_BUTTON_B)
+                            ) {
+                                viewModel.dismissExitDialog()
+                                true
+                            } else {
+                                false
+                            }
+                        }
                         .padding(32.dp)
                 ) {
                     Text(
@@ -218,6 +266,7 @@ fun PlayerScreen(
                             text = "Continua a Giocare",
                             icon = Icons.Default.PlayArrow,
                             isPrimary = true,
+                            modifier = Modifier.focusRequester(exitButtonFocusRequester),
                             onClick = { viewModel.dismissExitDialog() }
                         )
 

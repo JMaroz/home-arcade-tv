@@ -138,6 +138,9 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() },
                 onLaunchGame = { targetRomId, engine ->
                     navController.navigate(NavRoutes.Player.createRoute(targetRomId, engine))
+                },
+                onNavigateToRom = { targetRomId ->
+                    navController.navigate(NavRoutes.Details.createRoute(targetRomId))
                 }
             )
         }

@@ -31,8 +31,32 @@ data class RomDto(
     val players: String? = null,
     val romHash: String? = null,
     val communityScore: Int? = null,
+    val size: Long? = null,
+    val scrapeStatus: String? = null,
+    val raGameId: Int? = null,
+    val mimeType: String? = null,
     val createdAt: Long = 0L
 ) {
+    fun getFormattedSize(): String? {
+        val s = size ?: return null
+        if (s <= 0) return null
+        val kb = s / 1024.0
+        val mb = kb / 1024.0
+        val gb = mb / 1024.0
+        return when {
+            gb >= 1.0 -> String.format(java.util.Locale.US, "%.1f GB", gb)
+            mb >= 1.0 -> String.format(java.util.Locale.US, "%.1f MB", mb)
+            else -> String.format(java.util.Locale.US, "%.0f KB", kb)
+        }
+    }
+
+    fun getFileExtension(): String? {
+        val name = fileName ?: originalName ?: return null
+        val dot = name.lastIndexOf('.')
+        return if (dot != -1 && dot < name.length - 1) {
+            name.substring(dot + 1).uppercase()
+        } else null
+    }
     fun getFullArtUrl(baseUrl: String?): String? {
         if (artUrl.isNullOrEmpty()) {
             // Default fallback to server art endpoint by id
@@ -104,3 +128,28 @@ data class HealthStatusDto(
 data class FavoriteToggleRequestDto(
     val favorite: Boolean
 )
+
+@Serializable
+data class HltbResponseDto(
+    val found: Boolean = false,
+    val mainStory: Int? = null,
+    val mainExtra: Int? = null,
+    val completionist: Int? = null,
+    val hltbTitle: String? = null
+) {
+    fun formatStory(): String? = formatMinutes(mainStory)
+    fun formatExtra(): String? = formatMinutes(mainExtra)
+    fun formatCompletionist(): String? = formatMinutes(completionist)
+
+    private fun formatMinutes(minutes: Int?): String? {
+        if (minutes == null || minutes <= 0) return null
+        val hours = minutes / 60
+        val rem = minutes % 60
+        return if (hours > 0) {
+            if (rem >= 30) "${hours}h 30m" else "${hours}h"
+        } else {
+            "${rem}m"
+        }
+    }
+}
+

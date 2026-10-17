@@ -23,18 +23,20 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.homearcade.tv.ui.theme.ArcadeGlow
 import com.homearcade.tv.ui.theme.ArcadePink
 import com.homearcade.tv.ui.theme.FocusBorderColor
 
 /**
- * Custom TV focus modifier with 1.08x spring scale, neon arcade glow, and D-pad click handling.
+ * Custom TV focus modifier with 1.04x subtle micro-zoom, zIndex layer elevation, neon arcade glow, and D-pad click handling.
  */
 @Composable
 fun Modifier.tvFocusable(
     enabled: Boolean = true,
     shape: Shape = RoundedCornerShape(12.dp),
-    focusedScale: Float = 1.08f,
+    unfocusedScale: Float = 1.0f,
+    focusedScale: Float = 1.04f,
     focusedBorderWidth: Dp = 2.5.dp,
     focusedBorderColor: Color = FocusBorderColor,
     unfocusedBorderColor: Color = Color.Transparent,
@@ -43,7 +45,7 @@ fun Modifier.tvFocusable(
 ): Modifier {
     var isFocused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) focusedScale else 1.0f,
+        targetValue = if (isFocused) focusedScale else unfocusedScale,
         animationSpec = spring(dampingRatio = 0.85f, stiffness = 500f),
         label = "tv_focus_scale"
     )
@@ -57,6 +59,7 @@ fun Modifier.tvFocusable(
     val interactionSource = remember { MutableInteractionSource() }
 
     return this
+        .zIndex(if (isFocused) 1f else 0f)
         .scale(scale)
         .shadow(
             elevation = shadowElevation.dp,

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.homearcade.tv.data.api.ApiClient
 import com.homearcade.tv.data.local.AppPreferences
+import com.homearcade.tv.data.model.HltbResponseDto
 import com.homearcade.tv.data.model.RomDto
 import com.homearcade.tv.data.model.SaveStateDto
 import com.homearcade.tv.data.repository.RomRepository
@@ -21,6 +22,9 @@ data class DetailsUiState(
     val selectedDiscId: Int? = null,
     val saveStates: List<SaveStateDto> = emptyList(),
     val preferNativeStream: Boolean = true,
+    val hltb: HltbResponseDto? = null,
+    val relatedGames: List<RomDto> = emptyList(),
+    val isScraping: Boolean = false,
     val errorMessage: String? = null
 )
 
@@ -60,6 +64,12 @@ class DetailsViewModel(
 
                     // Load save states
                     loadSaveStates(rom.id, serverUrl)
+
+                    // Load HLTB
+                    loadHltb(rom.id)
+
+                    // Load related games from the same system
+                    loadRelatedGames(rom.system, rom.id)
                 }
                 .onFailure { err ->
                     _uiState.value = _uiState.value.copy(
@@ -90,6 +100,43 @@ class DetailsViewModel(
             } catch (_: Exception) {
                 // Non-blocking
             }
+        }
+    }
+
+    private fun loadHltb(id: Int) {
+        viewModelScope.launch {
+            romRepository.getHltb(id)
+                .onSuccess { hltb ->
+                    _uiState.value = _uiState.value.copy(hltb = hltb)
+                }
+        }
+    }
+
+    private fun loadRelatedGames(system: String, currentRomId: Int) {
+        viewModelScope.launch {
+            val games = romRepository.getRomsBySystem(system).firstOrNull() ?: emptyList()
+            _uiState.value = _uiState.value.copy(
+                relatedGames = games.filter { it.id != currentRomId }
+            )
+        }
+    }
+
+    fun scrapeMetadata() {
+        val currentRom = _uiState.value.rom ?: return
+        if (_uiState.value.isScraping) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isScraping = true)
+            romRepository.scrapeMeta(currentRom.id)
+                .onSuccess { updated ->
+                    _uiState.value = _uiState.value.copy(
+                        rom = updated,
+                        isScraping = false
+                    )
+                    loadHltb(updated.id)
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isScraping = false)
+                }
         }
     }
 

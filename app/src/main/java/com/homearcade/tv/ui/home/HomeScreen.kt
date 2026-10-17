@@ -174,16 +174,15 @@ fun HomeScreen(
                             }
                         }
 
-                        // Console Shelves
-                        uiState.allSystems.forEach { system ->
-                            val systemRoms = uiState.systemShelves[system] ?: emptyList()
-                            if (systemRoms.isNotEmpty()) {
-                                item(key = "shelf_$system") {
+                        // Platform Shelves (Latest Additions per system)
+                        uiState.platformShelves.forEach { shelf ->
+                            if (shelf.games.isNotEmpty()) {
+                                item(key = "shelf_${shelf.systemId}") {
                                     TvShelfRow(
-                                        title = system.uppercase(),
-                                        items = systemRoms,
+                                        title = "${shelf.displayName} • Ultime Aggiunte",
+                                        items = shelf.games,
                                         serverUrl = uiState.serverUrl,
-                                        countSubtitle = "${systemRoms.size} titoli",
+                                        countSubtitle = "${shelf.totalCount} titoli",
                                         onItemFocused = { viewModel.onCardFocused(it) },
                                         onItemClick = { onNavigateToDetails(it.id) }
                                     )
@@ -250,9 +249,11 @@ fun HomeScreen(
 
                         val activeSys = uiState.selectedSystemFilter ?: uiState.allSystems.firstOrNull() ?: ""
                         val filteredRoms = uiState.systemShelves[activeSys] ?: emptyList()
+                        val activeShelf = uiState.platformShelves.find { it.systemId.equals(activeSys, ignoreCase = true) }
+                        val activeTitle = activeShelf?.displayName ?: activeSys.uppercase()
                         item {
                             TvShelfRow(
-                                title = "Giochi per ${activeSys.uppercase()}",
+                                title = "Catalogo $activeTitle",
                                 items = filteredRoms,
                                 serverUrl = uiState.serverUrl,
                                 countSubtitle = "${filteredRoms.size} titoli",
