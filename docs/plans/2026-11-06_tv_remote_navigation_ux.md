@@ -24,33 +24,33 @@ Risolvere le criticità di navigazione tramite telecomando Android TV identifica
   - Non introdurre librerie esterne non necessarie (rimanere su Jetpack Compose TV / stdlib).
 
 ## Task Checklist
-- [ ] **Fase 1: Focus Modifier Stabile & Anti-Jank (Punto 2)**
-  - [ ] Rimuovere lo scaling dinamico (`focusedScale = 1.0f`) o ridurlo a valore impercettibile senza layout shift.
-  - [ ] Sostituire l'ombra dinamica `shadow()` (pesante su GPU Mali/Adreno TV) con bordo neon ad alto contrasto e glow leggero.
-  - [ ] Fissare i pesi dei font nelle tab per evitare spostamenti di larghezza tra `Medium` e `Bold`.
-- [ ] **Fase 2: Fluidità & Prestazioni D-pad (Punto 5)**
-  - [ ] Introdurre debounce (200-250ms) nel `HomeViewModel.onCardFocused` per non scatenare ricomposizioni e caricamento immagini ad ogni micro-passo del D-pad.
-  - [ ] Aggiungere `key` e `contentType` stabili agli item di `LazyColumn` e `LazyRow`.
-  - [ ] Disattivare logger verboso Coil e tuning crossfade per TV.
-- [ ] **Fase 3: Layout Home & Griglia Console (Punti 1 e 4)**
-  - [ ] Ridurre l'altezza dell'Hero Billboard (da 380dp a 240-260dp) per liberare spazio visivo verticale.
-  - [ ] Ridimensionare le card di gioco (da 145x205 dp a 120x170 dp) per mostrare 2-3 scaffali contemporaneamente.
-  - [ ] In `HomeSection.SYSTEMS`, sostituire la `TvShelfRow` a riga singola con una griglia 2D (`LazyVerticalGrid` a 5-6 colonne o righe strutturate per TV) per sfogliare comodamente decine o centinaia di ROM.
-- [ ] **Fase 4: Correzione Ricerca per Telecomando TV (Punto 3)**
-  - [ ] All'apertura della ricerca a query vuota, mostrare il catalogo completo o i giochi recenti/popolari invece di uno schermo nero.
-  - [ ] Configurare il campo di ricerca con supporto corretto a D-pad/Enter e attivazione tastiera Android TV (`SoftwareKeyboardController` o tastierino rapido).
-- [ ] **Fase 5: Dettaglio Gioco - Focus "Gioca Ora" & Auto-Scraping (Punti 6 e 7)**
-  - [ ] Aggiungere `FocusRequester` sul pulsante "Gioca Ora" in `DetailsScreen` con attivazione automatica in `LaunchedEffect(Unit)`.
-  - [ ] Rimuovere i bottoni "Motore" e "Cerca Info" dalla barra delle azioni principali.
-  - [ ] Nel `DetailsViewModel`, eseguire in background il controllo metadati: se la ROM non ha descrizione/anno/info, avviare automaticamente lo scraping asincrono senza richiedere click manuale.
-- [ ] **Fase 6: Focus Restoration su Back (Punto 8)**
-  - [ ] Salvare in `HomeViewModel` l'id dell'ultima ROM aperta o a fuoco (`lastFocusedRomId`).
-  - [ ] Al ritorno su `HomeScreen`, richiedere il focus tramite `FocusRequester` o scrollare l'indice salvato in modo che la schermata non salti in cima alle tab ("Tutti").
+- [x] **Fase 1: Focus Modifier Stabile & Anti-Jank (Punto 2)**
+  - [x] Rimuovere lo scaling dinamico (`focusedScale = 1.0f`) o ridurlo a valore impercettibile senza layout shift.
+  - [x] Sostituire l'ombra dinamica `shadow()` (pesante su GPU Mali/Adreno TV) con bordo neon ad alto contrasto e glow leggero.
+  - [x] Fissare i pesi dei font nelle tab per evitare spostamenti di larghezza tra `Medium` e `Bold`.
+- [x] **Fase 2: Fluidità & Prestazioni D-pad (Punto 5)**
+  - [x] Introdurre debounce (200ms) nel `HomeViewModel.onCardFocused` per non scatenare ricomposizioni e caricamento immagini ad ogni micro-passo del D-pad.
+  - [x] Aggiungere `key` e `contentType` stabili agli item di `LazyColumn`, `LazyVerticalGrid` e `LazyRow`.
+  - [x] Disattivare logger verboso Coil e tuning crossfade (100ms) per TV.
+- [x] **Fase 3: Layout Home & Griglia Console (Punti 1 e 4)**
+  - [x] Ridurre l'altezza dell'Hero Billboard (da 380dp a 240dp) per liberare spazio visivo verticale.
+  - [x] Ridimensionare le card di gioco (da 145x205 dp a 120x170 dp) per mostrare 2-3 scaffali contemporaneamente.
+  - [x] In `HomeSection.SYSTEMS`, sostituire la `TvShelfRow` a riga singola con una griglia 2D (`LazyVerticalGrid` ad active columns 120dp) per sfogliare comodamente decine o centinaia di ROM.
+- [x] **Fase 4: Correzione Ricerca per Telecomando TV (Punto 3)**
+  - [x] All'apertura della ricerca a query vuota, mostrare il catalogo completo o i giochi recenti/popolari invece di uno schermo nero.
+  - [x] Configurare il campo di ricerca con supporto corretto a D-pad/Enter e attivazione tastiera Android TV (`SoftwareKeyboardController` e `FocusRequester`), con chip di ricerca rapida.
+- [x] **Fase 5: Dettaglio Gioco - Focus "Gioca Ora" & Auto-Scraping (Punti 6 e 7)**
+  - [x] Aggiungere `FocusRequester` sul pulsante "Gioca Ora" in `DetailsScreen` con attivazione automatica in `LaunchedEffect(rom?.id)`.
+  - [x] Rimuovere i bottoni "Motore" e "Cerca Info" dalla barra delle azioni principali.
+  - [x] Nel `DetailsViewModel`, eseguire in background il controllo metadati: se la ROM non ha descrizione/anno/info, avviare automaticamente lo scraping asincrono senza richiedere click manuale.
+- [x] **Fase 6: Focus Restoration su Back (Punto 8)**
+  - [x] Salvare in `HomeViewModel` l'id dell'ultima ROM aperta o a fuoco (`lastFocusedRomId`).
+  - [x] Al ritorno su `HomeScreen`, richiedere il focus sulla card precedente tramite `isLastFocused` e `FocusRequester`, mantenendo lo scroll.
 
 ## Strategia di Verifica
 1. **Compilazione e Test Unitari**:
-   - Eseguire `./gradlew test` per verificare che non ci siano regressioni nei test esistenti.
-   - Verificare che il codice compili pulito con `./gradlew assembleDebug`.
+   - Eseguire `./gradlew test` per verificare che non ci siano regressioni nei test esistenti (Completato con successo: `BUILD SUCCESSFUL in 16s`).
+   - Verificare che il codice compili pulito con `./gradlew assembleDebug` (Completato con successo: `BUILD SUCCESSFUL in 7s`).
 2. **Verifica Empirica su Dispositivo TV**:
    - Installare l'APK aggiornato su Android TV (`adb -s 192.168.1.50:5555 install -r app/build/outputs/apk/debug/app-debug.apk`).
    - Navigazione D-Pad: testare lo scorrimento veloce orizzontale e verificare l'assenza di scatti (grazie al debounce).

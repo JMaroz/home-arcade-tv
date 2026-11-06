@@ -59,7 +59,7 @@ fun HeroBillboard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(380.dp)
+            .height(240.dp)
             .background(BgPrimary)
     ) {
         // High-res Background Artwork
@@ -104,7 +104,7 @@ fun HeroBillboard(
                             BgPrimary.copy(alpha = 0.5f),
                             BgPrimary
                         ),
-                        startY = 150f
+                        startY = 60f
                     )
                 )
         )
@@ -114,8 +114,8 @@ fun HeroBillboard(
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 48.dp, bottom = 24.dp)
-                    .width(580.dp)
+                    .padding(start = 48.dp, bottom = 12.dp)
+                    .width(620.dp)
             ) {
                 // System Badge & Metadata Row
                 Row(
@@ -125,18 +125,18 @@ fun HeroBillboard(
                     Text(
                         text = item.system.uppercase(),
                         color = Color.White,
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold,
                         modifier = Modifier
                             .background(sysColor, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
 
                     if (item.releaseYear != null && item.releaseYear > 0) {
                         Text(
                             text = "${item.releaseYear}",
                             color = TextMuted,
-                            fontSize = 12.sp
+                            fontSize = 11.sp
                         )
                     }
 
@@ -144,7 +144,7 @@ fun HeroBillboard(
                         Text(
                             text = "•  ${item.players} Giocatori",
                             color = TextMuted,
-                            fontSize = 12.sp
+                            fontSize = 11.sp
                         )
                     }
 
@@ -152,7 +152,7 @@ fun HeroBillboard(
                         Text(
                             text = "•  ${item.genre}",
                             color = TextMuted,
-                            fontSize = 12.sp
+                            fontSize = 11.sp
                         )
                     }
 
@@ -162,48 +162,48 @@ fun HeroBillboard(
                                 imageVector = Icons.Default.Star,
                                 contentDescription = null,
                                 tint = AccentGold,
-                                modifier = Modifier.height(13.dp)
+                                modifier = Modifier.height(12.dp)
                             )
                             Text(
                                 text = " ${item.rating}/5",
                                 color = TextMain,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Title
                 Text(
                     text = item.title,
                     color = TextMain,
-                    fontSize = 28.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(3.dp))
 
                 // Description
                 val synopsis = item.description ?: "Nessuna descrizione disponibile per questo titolo retro."
                 Text(
                     text = synopsis,
                     color = TextDim,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    maxLines = 3,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Action Buttons
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     TvButton(
                         text = "Gioca Subito",

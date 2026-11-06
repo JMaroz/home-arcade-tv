@@ -17,6 +17,7 @@ data class SearchUiState(
     val query: String = "",
     val isSearching: Boolean = false,
     val results: List<RomDto> = emptyList(),
+    val initialCatalog: List<RomDto> = emptyList(),
     val serverUrl: String? = null
 )
 
@@ -28,12 +29,19 @@ class SearchViewModel(
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
+    val quickTags = listOf("Tutti", "Arcade", "SNES", "PS1", "GBA", "NES", "Genesis", "Mario", "Sonic", "Metal Slug")
+
     private var searchJob: Job? = null
 
     init {
         viewModelScope.launch {
             val url = preferences.serverUrl.firstOrNull()
-            _uiState.value = _uiState.value.copy(serverUrl = url)
+            val allRoms = romRepository.fetchRoms().getOrNull() ?: emptyList()
+            _uiState.value = _uiState.value.copy(
+                serverUrl = url,
+                results = allRoms,
+                initialCatalog = allRoms
+            )
         }
     }
 
@@ -41,13 +49,17 @@ class SearchViewModel(
         _uiState.value = _uiState.value.copy(query = newQuery)
         searchJob?.cancel()
 
-        if (newQuery.trim().isEmpty()) {
-            _uiState.value = _uiState.value.copy(isSearching = false, results = emptyList())
+        if (newQuery.trim().isEmpty() || newQuery.equals("Tutti", ignoreCase = true)) {
+            _uiState.value = _uiState.value.copy(
+                isSearching = false,
+                query = if (newQuery.equals("Tutti", ignoreCase = true)) "" else newQuery,
+                results = _uiState.value.initialCatalog
+            )
             return
         }
 
         searchJob = viewModelScope.launch {
-            delay(300) // 300ms debounce
+            delay(250) // 250ms debounce
             _uiState.value = _uiState.value.copy(isSearching = true)
             val matched = romRepository.searchRoms(newQuery)
             _uiState.value = _uiState.value.copy(

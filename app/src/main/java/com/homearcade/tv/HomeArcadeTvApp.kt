@@ -73,12 +73,7 @@ class HomeArcadeTvApp : Application(), SingletonImageLoader.Factory {
                     .maxSizeBytes(150L * 1024 * 1024) // 150MB disk cache for box art
                     .build()
             }
-            .crossfade(true)
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    logger(DebugLogger())
-                }
-            }
+            .crossfade(100)
             .build()
     }
 }

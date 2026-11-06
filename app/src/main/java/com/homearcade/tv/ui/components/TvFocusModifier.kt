@@ -1,8 +1,7 @@
 package com.homearcade.tv.ui.components
 
 import android.view.KeyEvent
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,8 +14,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -24,52 +21,38 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.homearcade.tv.ui.theme.ArcadeGlow
-import com.homearcade.tv.ui.theme.ArcadePink
 import com.homearcade.tv.ui.theme.FocusBorderColor
 
 /**
- * Custom TV focus modifier with 1.04x subtle micro-zoom, zIndex layer elevation, neon arcade glow, and D-pad click handling.
+ * Stable TV focus modifier with zero layout-shift, high-contrast neon border, and D-pad click handling.
  */
 @Composable
 fun Modifier.tvFocusable(
     enabled: Boolean = true,
     shape: Shape = RoundedCornerShape(12.dp),
     unfocusedScale: Float = 1.0f,
-    focusedScale: Float = 1.04f,
-    focusedBorderWidth: Dp = 2.5.dp,
+    focusedScale: Float = 1.0f,
+    focusedBorderWidth: Dp = 2.dp,
     focusedBorderColor: Color = FocusBorderColor,
     unfocusedBorderColor: Color = Color.Transparent,
     onFocusChanged: ((Boolean) -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ): Modifier {
     var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isFocused) focusedScale else unfocusedScale,
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = 500f),
-        label = "tv_focus_scale"
-    )
 
-    val shadowElevation by animateFloatAsState(
-        targetValue = if (isFocused) 16f else 0f,
-        animationSpec = tween(durationMillis = 180),
-        label = "tv_focus_shadow"
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) focusedBorderColor else unfocusedBorderColor,
+        animationSpec = tween(durationMillis = 150),
+        label = "tv_focus_border"
     )
 
     val interactionSource = remember { MutableInteractionSource() }
 
     return this
         .zIndex(if (isFocused) 1f else 0f)
-        .scale(scale)
-        .shadow(
-            elevation = shadowElevation.dp,
-            shape = shape,
-            ambientColor = ArcadeGlow,
-            spotColor = ArcadePink
-        )
         .border(
-            width = if (isFocused) focusedBorderWidth else 1.dp,
-            color = if (isFocused) focusedBorderColor else unfocusedBorderColor,
+            width = focusedBorderWidth,
+            color = borderColor,
             shape = shape
         )
         .onFocusChanged { focusState ->

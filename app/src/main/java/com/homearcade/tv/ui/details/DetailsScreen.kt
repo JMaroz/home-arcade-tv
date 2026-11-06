@@ -22,23 +22,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.DiscFull
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.HourglassTop
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -81,6 +83,15 @@ fun DetailsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val rom = uiState.rom
+    val playButtonFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(rom?.id) {
+        if (rom != null) {
+            try {
+                playButtonFocusRequester.requestFocus()
+            } catch (_: Exception) {}
+        }
+    }
 
     BackHandler {
         onBackClick()
@@ -273,12 +284,14 @@ fun DetailsScreen(
                     val engineName = if (uiState.preferNativeStream) "webrtc" else "wasm"
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         TvButton(
                             text = "Gioca Ora",
                             icon = Icons.Default.PlayArrow,
                             isPrimary = true,
+                            modifier = Modifier.focusRequester(playButtonFocusRequester),
                             onClick = {
                                 onLaunchGame(targetRomId, engineName)
                             }
@@ -290,17 +303,14 @@ fun DetailsScreen(
                             onClick = { viewModel.toggleFavorite() }
                         )
 
-                        TvButton(
-                            text = if (uiState.preferNativeStream) "Motore: WebRTC (60fps)" else "Motore: WebAssembly",
-                            icon = Icons.Default.Memory,
-                            onClick = { viewModel.toggleEngine() }
-                        )
-
-                        TvButton(
-                            text = if (uiState.isScraping) "Ricerca Info..." else "Cerca Info Online",
-                            icon = Icons.Default.CloudDownload,
-                            onClick = { viewModel.scrapeMetadata() }
-                        )
+                        if (uiState.isScraping) {
+                            Text(
+                                text = "Aggiornamento info in corso...",
+                                color = AccentCyan,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))

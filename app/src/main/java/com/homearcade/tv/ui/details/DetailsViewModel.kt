@@ -70,6 +70,11 @@ class DetailsViewModel(
 
                     // Load related games from the same system
                     loadRelatedGames(rom.system, rom.id)
+
+                    // Auto-scrape in background if essential metadata is missing
+                    if (rom.description.isNullOrBlank() || rom.releaseYear == null || rom.releaseYear == 0 || rom.artUrl.isNullOrBlank()) {
+                        scrapeMetadata()
+                    }
                 }
                 .onFailure { err ->
                     _uiState.value = _uiState.value.copy(

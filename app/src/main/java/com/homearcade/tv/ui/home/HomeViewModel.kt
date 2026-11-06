@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.homearcade.tv.data.local.AppPreferences
 import com.homearcade.tv.data.model.RomDto
 import com.homearcade.tv.data.repository.RomRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +40,7 @@ data class HomeUiState(
     val systemShelves: Map<String, List<RomDto>> = emptyMap(),
     val allSystems: List<String> = emptyList(),
     val selectedSystemFilter: String? = null,
+    val lastFocusedRomId: Int? = null,
     val errorMessage: String? = null
 )
 
@@ -113,8 +116,21 @@ class HomeViewModel(
         }
     }
 
+    private var heroDebounceJob: Job? = null
+
     fun onCardFocused(rom: RomDto) {
-        _uiState.value = _uiState.value.copy(heroRom = rom)
+        _uiState.value = _uiState.value.copy(lastFocusedRomId = rom.id)
+        heroDebounceJob?.cancel()
+        heroDebounceJob = viewModelScope.launch {
+            delay(200) // 200ms debounce: only update hero if user pauses on the card
+            if (_uiState.value.heroRom?.id != rom.id) {
+                _uiState.value = _uiState.value.copy(heroRom = rom)
+            }
+        }
+    }
+
+    fun setLastFocusedRomId(romId: Int) {
+        _uiState.value = _uiState.value.copy(lastFocusedRomId = romId)
     }
 
     fun onSelectSection(section: HomeSection) {

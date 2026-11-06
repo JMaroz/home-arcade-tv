@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,6 +44,7 @@ import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import com.homearcade.tv.ui.components.HeroBillboard
 import com.homearcade.tv.ui.components.TvButton
+import com.homearcade.tv.ui.components.TvGameCard
 import com.homearcade.tv.ui.components.TvLoadingSpinner
 import com.homearcade.tv.ui.components.TvShelfRow
 import com.homearcade.tv.ui.components.tvFocusable
@@ -97,175 +102,232 @@ fun HomeScreen(
                 )
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(BgPrimary)
             ) {
-                // 1. Top TV Navigation Bar
-                item {
-                    TopTvNavigationBar(
-                        profileName = uiState.profileName,
-                        selectedSection = uiState.selectedSection,
-                        onSelectSection = { viewModel.onSelectSection(it) },
-                        onSearchClick = onSearchClick,
-                        onProfileClick = onProfileClick,
-                        onSettingsClick = onSettingsClick
-                    )
-                }
+                // 1. Top TV Navigation Bar (Always fixed at top)
+                TopTvNavigationBar(
+                    profileName = uiState.profileName,
+                    selectedSection = uiState.selectedSection,
+                    onSelectSection = { viewModel.onSelectSection(it) },
+                    onSearchClick = onSearchClick,
+                    onProfileClick = onProfileClick,
+                    onSettingsClick = onSettingsClick
+                )
 
-                // 2. Dynamic Hero Billboard
-                item {
-                    HeroBillboard(
-                        item = uiState.heroRom,
-                        serverUrl = uiState.serverUrl,
-                        onPlayClick = {
-                            uiState.heroRom?.let { onLaunchGame(it.id) }
-                        },
-                        onDetailsClick = {
-                            uiState.heroRom?.let { onNavigateToDetails(it.id) }
-                        },
-                        onToggleFavorite = {
-                            uiState.heroRom?.let { viewModel.toggleFavorite(it) }
-                        }
-                    )
-                }
+                // 2. Main Content based on selected Section
+                if (uiState.selectedSection == HomeSection.SYSTEMS) {
+                    // Console Pill Selector
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 48.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(uiState.allSystems) { sys ->
+                            val isSelected = sys == uiState.selectedSystemFilter
+                            val pillShape = RoundedCornerShape(20.dp)
+                            val sysColor = getSystemColor(sys)
 
-                // 3. Dynamic Shelves based on selected Section
-                when (uiState.selectedSection) {
-                    HomeSection.ALL -> {
-                        // Recently Played
-                        if (uiState.recentlyPlayed.isNotEmpty()) {
-                            item {
-                                TvShelfRow(
-                                    title = "Continua a Giocare",
-                                    items = uiState.recentlyPlayed,
-                                    serverUrl = uiState.serverUrl,
-                                    countSubtitle = "${uiState.recentlyPlayed.size} titoli",
-                                    onItemFocused = { viewModel.onCardFocused(it) },
-                                    onItemClick = { onNavigateToDetails(it.id) }
-                                )
-                            }
-                        }
-
-                        // Favorites
-                        if (uiState.favorites.isNotEmpty()) {
-                            item {
-                                TvShelfRow(
-                                    title = "I Tuoi Preferiti",
-                                    items = uiState.favorites,
-                                    serverUrl = uiState.serverUrl,
-                                    countSubtitle = "${uiState.favorites.size} giochi",
-                                    onItemFocused = { viewModel.onCardFocused(it) },
-                                    onItemClick = { onNavigateToDetails(it.id) }
-                                )
-                            }
-                        }
-
-                        // Latest Added
-                        if (uiState.latestAdded.isNotEmpty()) {
-                            item {
-                                TvShelfRow(
-                                    title = "Ultimi Aggiunti",
-                                    items = uiState.latestAdded.take(20),
-                                    serverUrl = uiState.serverUrl,
-                                    countSubtitle = "${uiState.latestAdded.size} giochi",
-                                    onItemFocused = { viewModel.onCardFocused(it) },
-                                    onItemClick = { onNavigateToDetails(it.id) }
-                                )
-                            }
-                        }
-
-                        // Platform Shelves (Latest Additions per system)
-                        uiState.platformShelves.forEach { shelf ->
-                            if (shelf.games.isNotEmpty()) {
-                                item(key = "shelf_${shelf.systemId}") {
-                                    TvShelfRow(
-                                        title = "${shelf.displayName} • Ultime Aggiunte",
-                                        items = shelf.games,
-                                        serverUrl = uiState.serverUrl,
-                                        countSubtitle = "${shelf.totalCount} titoli",
-                                        onItemFocused = { viewModel.onCardFocused(it) },
-                                        onItemClick = { onNavigateToDetails(it.id) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    HomeSection.FAVORITES -> {
-                        item {
-                            TvShelfRow(
-                                title = "Catalogo Preferiti",
-                                items = uiState.favorites,
-                                serverUrl = uiState.serverUrl,
-                                countSubtitle = "${uiState.favorites.size} giochi",
-                                onItemFocused = { viewModel.onCardFocused(it) },
-                                onItemClick = { onNavigateToDetails(it.id) }
-                            )
-                        }
-                    }
-
-                    HomeSection.RECENT -> {
-                        item {
-                            TvShelfRow(
-                                title = "Cronologia Recenti",
-                                items = uiState.recentlyPlayed,
-                                serverUrl = uiState.serverUrl,
-                                countSubtitle = "${uiState.recentlyPlayed.size} giocati di recente",
-                                onItemFocused = { viewModel.onCardFocused(it) },
-                                onItemClick = { onNavigateToDetails(it.id) }
-                            )
-                        }
-                    }
-
-                    HomeSection.SYSTEMS -> {
-                        // Console Pill Selector
-                        item {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 48.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            Box(
+                                modifier = Modifier
+                                    .tvFocusable(shape = pillShape, onClick = { viewModel.onSelectSystemFilter(sys) })
+                                    .clip(pillShape)
+                                    .background(if (isSelected) sysColor else Color(0x26FFFFFF))
+                                    .padding(horizontal = 16.dp, vertical = 7.dp)
                             ) {
-                                items(uiState.allSystems) { sys ->
-                                    val isSelected = sys == uiState.selectedSystemFilter
-                                    val pillShape = RoundedCornerShape(20.dp)
-                                    val sysColor = getSystemColor(sys)
+                                Text(
+                                    text = sys.uppercase(),
+                                    color = if (isSelected) Color.White else TextMain,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .tvFocusable(shape = pillShape, onClick = { viewModel.onSelectSystemFilter(sys) })
-                                            .clip(pillShape)
-                                            .background(if (isSelected) sysColor else Color(0x26FFFFFF))
-                                            .padding(horizontal = 16.dp, vertical = 7.dp)
-                                    ) {
-                                        Text(
-                                            text = sys.uppercase(),
-                                            color = if (isSelected) Color.White else TextMain,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    val activeSys = uiState.selectedSystemFilter ?: uiState.allSystems.firstOrNull() ?: ""
+                    val filteredRoms = uiState.systemShelves[activeSys] ?: emptyList()
+                    val activeShelf = uiState.platformShelves.find { it.systemId.equals(activeSys, ignoreCase = true) }
+                    val activeTitle = activeShelf?.displayName ?: activeSys.uppercase()
+
+                    Text(
+                        text = "Catalogo $activeTitle (${filteredRoms.size} titoli)",
+                        color = TextMuted,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(horizontal = 48.dp, vertical = 4.dp)
+                    )
+
+                    // 2D Navigation Grid for TV remote
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 120.dp),
+                        contentPadding = PaddingValues(start = 48.dp, end = 48.dp, bottom = 48.dp, top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(
+                            items = filteredRoms,
+                            key = { it.id },
+                            contentType = { "game_card" }
+                        ) { rom ->
+                            TvGameCard(
+                                item = rom,
+                                serverUrl = uiState.serverUrl,
+                                isLastFocused = rom.id == uiState.lastFocusedRomId,
+                                onFocused = { viewModel.onCardFocused(rom) },
+                                onClick = {
+                                    viewModel.setLastFocusedRomId(rom.id)
+                                    onNavigateToDetails(rom.id)
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    val listState = rememberLazyListState()
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        // Dynamic Hero Billboard
+                        item(key = "hero_billboard") {
+                            HeroBillboard(
+                                item = uiState.heroRom,
+                                serverUrl = uiState.serverUrl,
+                                onPlayClick = {
+                                    uiState.heroRom?.let { onLaunchGame(it.id) }
+                                },
+                                onDetailsClick = {
+                                    uiState.heroRom?.let {
+                                        viewModel.setLastFocusedRomId(it.id)
+                                        onNavigateToDetails(it.id)
+                                    }
+                                },
+                                onToggleFavorite = {
+                                    uiState.heroRom?.let { viewModel.toggleFavorite(it) }
+                                }
+                            )
+                        }
+
+                        // Dynamic Shelves based on selected Section
+                        when (uiState.selectedSection) {
+                            HomeSection.ALL -> {
+                                // Recently Played
+                                if (uiState.recentlyPlayed.isNotEmpty()) {
+                                    item(key = "shelf_recent") {
+                                        TvShelfRow(
+                                            title = "Continua a Giocare",
+                                            items = uiState.recentlyPlayed,
+                                            serverUrl = uiState.serverUrl,
+                                            countSubtitle = "${uiState.recentlyPlayed.size} titoli",
+                                            lastFocusedRomId = uiState.lastFocusedRomId,
+                                            onItemFocused = { viewModel.onCardFocused(it) },
+                                            onItemClick = {
+                                                viewModel.setLastFocusedRomId(it.id)
+                                                onNavigateToDetails(it.id)
+                                            }
                                         )
                                     }
                                 }
+
+                                // Favorites
+                                if (uiState.favorites.isNotEmpty()) {
+                                    item(key = "shelf_favorites") {
+                                        TvShelfRow(
+                                            title = "I Tuoi Preferiti",
+                                            items = uiState.favorites,
+                                            serverUrl = uiState.serverUrl,
+                                            countSubtitle = "${uiState.favorites.size} giochi",
+                                            lastFocusedRomId = uiState.lastFocusedRomId,
+                                            onItemFocused = { viewModel.onCardFocused(it) },
+                                            onItemClick = {
+                                                viewModel.setLastFocusedRomId(it.id)
+                                                onNavigateToDetails(it.id)
+                                            }
+                                        )
+                                    }
+                                }
+
+                                // Latest Added
+                                if (uiState.latestAdded.isNotEmpty()) {
+                                    item(key = "shelf_latest") {
+                                        TvShelfRow(
+                                            title = "Ultimi Aggiunti",
+                                            items = uiState.latestAdded.take(20),
+                                            serverUrl = uiState.serverUrl,
+                                            countSubtitle = "${uiState.latestAdded.size} giochi",
+                                            lastFocusedRomId = uiState.lastFocusedRomId,
+                                            onItemFocused = { viewModel.onCardFocused(it) },
+                                            onItemClick = {
+                                                viewModel.setLastFocusedRomId(it.id)
+                                                onNavigateToDetails(it.id)
+                                            }
+                                        )
+                                    }
+                                }
+
+                                // Platform Shelves (Latest Additions per system)
+                                uiState.platformShelves.forEach { shelf ->
+                                    if (shelf.games.isNotEmpty()) {
+                                        item(key = "shelf_${shelf.systemId}") {
+                                            TvShelfRow(
+                                                title = "${shelf.displayName} • Ultime Aggiunte",
+                                                items = shelf.games,
+                                                serverUrl = uiState.serverUrl,
+                                                countSubtitle = "${shelf.totalCount} titoli",
+                                                lastFocusedRomId = uiState.lastFocusedRomId,
+                                                onItemFocused = { viewModel.onCardFocused(it) },
+                                                onItemClick = {
+                                                    viewModel.setLastFocusedRomId(it.id)
+                                                    onNavigateToDetails(it.id)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
+
+                            HomeSection.FAVORITES -> {
+                                item(key = "catalog_favorites") {
+                                    TvShelfRow(
+                                        title = "Catalogo Preferiti",
+                                        items = uiState.favorites,
+                                        serverUrl = uiState.serverUrl,
+                                        countSubtitle = "${uiState.favorites.size} giochi",
+                                        lastFocusedRomId = uiState.lastFocusedRomId,
+                                        onItemFocused = { viewModel.onCardFocused(it) },
+                                        onItemClick = {
+                                            viewModel.setLastFocusedRomId(it.id)
+                                            onNavigateToDetails(it.id)
+                                        }
+                                    )
+                                }
+                            }
+
+                            HomeSection.RECENT -> {
+                                item(key = "catalog_recent") {
+                                    TvShelfRow(
+                                        title = "Cronologia Recenti",
+                                        items = uiState.recentlyPlayed,
+                                        serverUrl = uiState.serverUrl,
+                                        countSubtitle = "${uiState.recentlyPlayed.size} giocati di recente",
+                                        lastFocusedRomId = uiState.lastFocusedRomId,
+                                        onItemFocused = { viewModel.onCardFocused(it) },
+                                        onItemClick = {
+                                            viewModel.setLastFocusedRomId(it.id)
+                                            onNavigateToDetails(it.id)
+                                        }
+                                    )
+                                }
+                            }
+
+                            HomeSection.SYSTEMS -> { /* Rendered above in 2D grid */ }
                         }
 
-                        val activeSys = uiState.selectedSystemFilter ?: uiState.allSystems.firstOrNull() ?: ""
-                        val filteredRoms = uiState.systemShelves[activeSys] ?: emptyList()
-                        val activeShelf = uiState.platformShelves.find { it.systemId.equals(activeSys, ignoreCase = true) }
-                        val activeTitle = activeShelf?.displayName ?: activeSys.uppercase()
-                        item {
-                            TvShelfRow(
-                                title = "Catalogo $activeTitle",
-                                items = filteredRoms,
-                                serverUrl = uiState.serverUrl,
-                                countSubtitle = "${filteredRoms.size} titoli",
-                                onItemFocused = { viewModel.onCardFocused(it) },
-                                onItemClick = { onNavigateToDetails(it.id) }
-                            )
+                        item(key = "home_bottom_spacer") {
+                            Spacer(modifier = Modifier.height(48.dp))
                         }
                     }
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(48.dp))
                 }
             }
         }
@@ -334,7 +396,7 @@ private fun TopTvNavigationBar(
                         text = section.title,
                         color = if (isSelected) Color.White else TextMain,
                         fontSize = 13.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }

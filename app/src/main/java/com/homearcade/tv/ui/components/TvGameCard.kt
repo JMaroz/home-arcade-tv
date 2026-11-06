@@ -17,9 +17,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -45,22 +49,33 @@ fun TvGameCard(
     item: RomDto,
     modifier: Modifier = Modifier,
     serverUrl: String? = null,
+    isLastFocused: Boolean = false,
     onFocused: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
-    val cardShape = RoundedCornerShape(10.dp)
+    val cardShape = RoundedCornerShape(8.dp)
     val formattedArt = item.getFullArtUrl(serverUrl)
     val sysColor = getSystemColor(item.system)
+    val focusRequester = remember { FocusRequester() }
+
+    if (isLastFocused) {
+        LaunchedEffect(Unit) {
+            try {
+                focusRequester.requestFocus()
+            } catch (_: Exception) {}
+        }
+    }
 
     Column(
         modifier = modifier
-            .width(145.dp)
-            .padding(vertical = 8.dp)
+            .width(120.dp)
+            .padding(vertical = 4.dp)
     ) {
         Box(
             modifier = Modifier
-                .width(145.dp)
-                .height(205.dp)
+                .width(120.dp)
+                .height(170.dp)
+                .focusRequester(focusRequester)
                 .tvFocusable(
                     shape = cardShape,
                     onFocusChanged = { if (it) onFocused?.invoke() },
@@ -193,13 +208,13 @@ fun TvGameCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
         // Title
         Text(
             text = item.title,
             color = TextMain,
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -215,7 +230,7 @@ fun TvGameCard(
         Text(
             text = subText,
             color = TextMuted,
-            fontSize = 11.sp,
+            fontSize = 10.sp,
             maxLines = 1
         )
     }

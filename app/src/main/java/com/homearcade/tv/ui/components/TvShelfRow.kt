@@ -30,6 +30,7 @@ fun TvShelfRow(
     modifier: Modifier = Modifier,
     serverUrl: String? = null,
     countSubtitle: String? = null,
+    lastFocusedRomId: Int? = null,
     onItemFocused: ((RomDto) -> Unit)? = null,
     onItemClick: (RomDto) -> Unit
 ) {
@@ -38,7 +39,7 @@ fun TvShelfRow(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .padding(vertical = 8.dp)
     ) {
         // Shelf Header
         Row(
@@ -50,7 +51,7 @@ fun TvShelfRow(
             Text(
                 text = title,
                 color = TextMain,
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
             )
 
@@ -58,24 +59,29 @@ fun TvShelfRow(
                 Text(
                     text = " • $countSubtitle",
                     color = TextMuted,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     modifier = Modifier.padding(start = 6.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Horizontal Row with 48dp TV overscan safe padding
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 48.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 48.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            items(items, key = { it.id }) { item ->
+            items(
+                items = items,
+                key = { it.id },
+                contentType = { "game_card" }
+            ) { item ->
                 TvGameCard(
                     item = item,
                     serverUrl = serverUrl,
+                    isLastFocused = item.id == lastFocusedRomId,
                     onFocused = { onItemFocused?.invoke(item) },
                     onClick = { onItemClick(item) }
                 )
