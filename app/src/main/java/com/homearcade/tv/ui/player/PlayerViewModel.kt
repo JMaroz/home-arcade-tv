@@ -3,6 +3,7 @@ package com.homearcade.tv.ui.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.homearcade.tv.data.local.AppPreferences
+import com.homearcade.tv.data.repository.RomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,21 +14,45 @@ data class PlayerUiState(
     val streamUrl: String? = null,
     val isLoading: Boolean = true,
     val isConfirmingExit: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val gameTitle: String = "HomeArcade Game",
+    val platform: String = "arcade",
+    val connectedSlots: Set<Int> = emptySet(),
+    val latestConnectedSlotNotification: Int? = null
 )
 
 class PlayerViewModel(
-    private val romId: Int,
+    val romId: Int,
     private val engine: String = "webrtc",
     private val discId: Int = -1,
-    private val preferences: AppPreferences
+    private val preferences: AppPreferences,
+    private val romRepository: RomRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
     init {
+        initGameMetadata()
         initStreamUrl()
+    }
+
+    private fun initGameMetadata() {
+        viewModelScope.launch {
+            if (romRepository != null && romId > 0) {
+                try {
+                    val romResult = romRepository.getRomDetails(romId)
+                    romResult.getOrNull()?.let { rom ->
+                        _uiState.value = _uiState.value.copy(
+                            gameTitle = rom.title,
+                            platform = rom.system
+                        )
+                    }
+                } catch (_: Exception) {
+                    // Fallback to defaults
+                }
+            }
+        }
     }
 
     private fun initStreamUrl() {
@@ -65,5 +90,25 @@ class PlayerViewModel(
 
     fun dismissExitDialog() {
         _uiState.value = _uiState.value.copy(isConfirmingExit = false)
+    }
+
+    fun updateConnectedSlot(slot: Int, isConnected: Boolean) {
+        val current = _uiState.value.connectedSlots.toMutableSet()
+        if (isConnected) {
+            current.add(slot)
+            _uiState.value = _uiState.value.copy(
+                connectedSlots = current,
+                latestConnectedSlotNotification = slot
+            )
+        } else {
+            current.remove(slot)
+            _uiState.value = _uiState.value.copy(
+                connectedSlots = current
+            )
+        }
+    }
+
+    fun clearSlotNotification() {
+        _uiState.value = _uiState.value.copy(latestConnectedSlotNotification = null)
     }
 }

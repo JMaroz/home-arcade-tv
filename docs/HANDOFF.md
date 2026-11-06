@@ -1,28 +1,35 @@
-# Hand-off Snapshot: HomeArcade TV App Improvements
+# Hand-off Snapshot: TV Remote Navigation, Layout & Performance Optimization
 
 ## Stato Corrente
-Completati con successo tutti i 4 interventi richiesti per l'applicazione Android TV / Google TV:
-1. **Icona e Banner TV**: Allineate le icone mipmap (`ic_launcher.png`) e generato il Leanback banner 16:9 (`@drawable/banner`) dall'asset originale dell'add-on HomeArcade.
-2. **Caroselli Piattaforme con Ultime Aggiunte**: In `HomeScreen` ("Tutti"), dopo "Continua a Giocare" e "Preferiti", ogni piattaforma espone il proprio carosello dedicato (`"${shelf.displayName} • Ultime Aggiunte"`) ordinato per data di aggiunta decrescente.
-3. **Schermata Dettagli Gioco (`DetailsScreen`)**: Arricchita con badge bar estesa, schede informative tecniche ("Statistiche di Gioco", "Scheda Tecnica & File", "HowLongToBeat"), azione "Cerca Info Online" (`/api/roms/:id/scrape-meta`) e carosello "Altri titoli per [Piattaforma]".
-4. **Fix Focus & Uscita Partita (`PlayerScreen`)**: Risolto il blocco D-pad nella dialog di uscita: disattivata l'intercettazione tasti del `WebView` quando `isConfirmingExit == true`, associato `FocusRequester` al pulsante principale con `LaunchedEffect`, e gestito `BackHandler` / tasto B del gamepad.
+- Completata l'analisi tecnica approfondita su tutti gli 8 punti sollevati per l'esperienza da telecomando Android TV.
+- Confermato che ogni osservazione dell'utente è fondata:
+  - Riga console non scalabile per decine di ROM (richiesta griglia 2D).
+  - Lo zoom `scale` e le ombre dinamiche muovono o soffocano visivamente gli elementi e causano jank GPU.
+  - La schermata di ricerca si apre vuota e non permette l'input D-pad né apre l'IME tastiera.
+  - La Hero Billboard (380dp) e le card (145x205dp) consumano troppo spazio verticale (65-70% dello schermo 1080p).
+  - L'aggiornamento immediato dell'hero su ogni cambio focus satura il thread immagini di Coil senza debounce.
+  - Il dettaglio gioco apre il focus sul tasto Back anziché sul tasto primario "Gioca Ora".
+  - I pulsanti "Motore" e "Cerca Info" affollano l'action bar anziché essere automatici o in settings.
+  - Il tasto Back perde il focus attivo e teletrasporta l'utente in cima alla home sul tab "Tutti".
+- Creato il piano di lavoro operativo dettagliato in `docs/plans/2026-11-06_tv_remote_navigation_ux.md`.
 
 ## File Rilevanti
-- `app/src/main/AndroidManifest.xml`: Collegato `android:banner="@drawable/banner"` e icona add-on.
-- `app/src/main/res/drawable/banner.png` & `drawable-xhdpi/banner.png`: Banner 16:9 standard Leanback.
-- `app/src/main/res/mipmap-*/ic_launcher.png`: Icone ad alta risoluzione per tutte le densità.
-- `app/src/main/java/com/homearcade/tv/data/model/Dtos.kt`: Esteso `RomDto` (size, scrapeStatus, raGameId, format helpers) e aggiunto `HltbResponseDto`.
-- `app/src/main/java/com/homearcade/tv/data/api/HomeArcadeApi.kt` & `RomRepository.kt`: Aggiunti endpoint `getHltb(id)` e `scrapeMeta(id)`.
-- `app/src/main/java/com/homearcade/tv/ui/home/HomeViewModel.kt` & `HomeScreen.kt`: Esposti e renderizzati i caroselli piattaforme con ultime aggiunte.
-- `app/src/main/java/com/homearcade/tv/ui/details/DetailsViewModel.kt` & `DetailsScreen.kt`: Nuova scheda tecnica completa, HLTB e carosello correlati.
-- `app/src/main/java/com/homearcade/tv/ui/player/PlayerScreen.kt`: Risolto consumo eventi D-pad e focus management della WebView.
-- `app/src/main/java/com/homearcade/tv/ui/components/TvFocusModifier.kt`, `TvGameCard.kt`, `TvShelfRow.kt`: Ottimizzazione micro-zoom e preallocazione padding caroselli.
+- `app/src/main/java/com/homearcade/tv/ui/components/TvFocusModifier.kt`: Riprogettazione indicatore di focus statico (glow neon e bordo nitido senza distorsione di scala o ombre pesanti).
+- `app/src/main/java/com/homearcade/tv/ui/home/HomeScreen.kt`: Hero compatto (~240dp), card ottimizzate, griglia 2D per console e restore del focus.
+- `app/src/main/java/com/homearcade/tv/ui/home/HomeViewModel.kt`: Debounce (250ms) per il caricamento dell'Hero e tracciamento `lastFocusedRomId`.
+- `app/src/main/java/com/homearcade/tv/ui/search/SearchScreen.kt`: Visualizzazione catalogo/recenti a vuoto e gestione focus/tastiera TV.
+- `app/src/main/java/com/homearcade/tv/ui/search/SearchViewModel.kt`: Popolamento catalogo iniziale.
+- `app/src/main/java/com/homearcade/tv/ui/details/DetailsScreen.kt`: Focus automatico su "Gioca Ora" e pulizia action bar.
+- `app/src/main/java/com/homearcade/tv/ui/details/DetailsViewModel.kt`: Auto-scraping trasparente in background se metadati mancanti.
 
 ## Prossimi Passi (Next Steps)
-- Eseguire testing di regressione su TV fisica (Philips TPM191E) verificando il ciclo di gioco e l'uscita con telecomando / gamepad Bluetooth.
-- Valutare caching offline di HowLongToBeat nel database SQLite backend dell'add-on per istantaneità senza round-trip.
+- Eseguire Fase 1 e 2: Stabilizzazione `TvFocusModifier` e introduzione del debounce hero in `HomeViewModel`.
+- Eseguire Fase 3: Ridisegno Home compatta e implementazione griglia 2D per la sezione console.
+- Eseguire Fase 4: Ripristino e fix della schermata di ricerca.
+- Eseguire Fase 5 e 6: Focus "Gioca Ora", rimozione pulsanti superflui con auto-scraping e ripristino posizione su Back.
+- Compilazione, verifica test (`./gradlew test`) e deploy su Android TV (`adb -s 192.168.1.50:5555`).
 
 ## Comandi Utili
-- Esecuzione Test Unitari: `./gradlew test`
+- Test Unitari: `./gradlew test`
 - Build APK Debug: `./gradlew assembleDebug`
-- Installazione diretta su TV via ADB: `adb connect <IP_TV>:5555 && adb install -r app/build/outputs/apk/debug/app-debug.apk`
+- Installazione Android TV: `adb -s 192.168.1.50:5555 install -r app/build/outputs/apk/debug/app-debug.apk`

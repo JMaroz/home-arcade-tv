@@ -12,6 +12,9 @@ local.properties
 *.aab
 app/build/
 app/release/
+mobile/build/
+mobile/release/
+state/
 
 # Signing & Keystores
 *.jks

@@ -209,7 +209,8 @@ fun AppNavigation(
                             romId = romId,
                             engine = engine,
                             discId = discId,
-                            preferences = app.preferences
+                            preferences = app.preferences,
+                            romRepository = app.romRepository
                         ) as T
                     }
                 }

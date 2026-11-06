@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "HomeArcadeTV"
 include(":app")
+include(":mobile")
